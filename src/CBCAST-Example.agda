@@ -9,36 +9,36 @@ open CBCAST String
 
 module CBCAST-Example where
 
-alice₁ : Process
+alice₁ : Event
 alice₁ = send "I lost my wallet..." empty
 
-alice₂ : Process
+alice₂ : Event
 alice₂ = send "Found it!" alice₁
 
-bob₁ : Process
+bob₁ : Event
 bob₁ = receive "I lost my wallet..." alice₁ p empty
   where
     p = empty , refl
 
-bob₂ : Process
+bob₂ : Event
 bob₂ = receive "Found it!" alice₂ p bob₁
   where
     p = alice₁ , refl
 
-bob₃ : Process
+bob₃ : Event
 bob₃ = send "Glad to hear it!" bob₂
 
-carol₁ : Process
+carol₁ : Event
 carol₁ = receive "I lost my wallet..." alice₁ p empty
   where
     p = empty , refl
 
-carol₂ : Process
+carol₂ : Event
 carol₂ = receive "Glad to hear it!" bob₃ p carol₁
   where
     p = bob₂ , refl
 
-carol₃ : Process
+carol₃ : Event
 carol₃ = receive "I lost my wallet..." alice₁ p carol₂
   where
     p = empty , refl
