@@ -58,10 +58,5 @@ foo₄ = sendBeforeReceive refl
 foo₅ : alice₁ happensBefore bob₂
 foo₅ = trans foo₁ foo₄
 
-only-empty-happensBefore-alice₁ : ∀ p → p happensBefore alice₁ → p ≡ empty
-only-empty-happensBefore-alice₁ _ (CBCAST.processOrder₁ refl) = refl
-only-empty-happensBefore-alice₁ _ (CBCAST.trans {p} {p''} hb hb') rewrite only-empty-happensBefore-alice₁ p'' hb' = ⊥-elim (nothing-happensBefore-empty p hb)
-
 foo₆ : ¬ (bob₂ happensBefore alice₁)
-foo₆ x with only-empty-happensBefore-alice₁ bob₂ x
-...       | ()
+foo₆ = hb-asymmetric foo₅
