@@ -5,7 +5,7 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
-module CBCAST (A : Set) where
+module CBCAST.Event (A : Set) where
 
 data Event : Set where
   empty   : Event

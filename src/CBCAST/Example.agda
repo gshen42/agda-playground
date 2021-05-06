@@ -4,10 +4,10 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; _≢_; sym)
 
-import CBCAST
-open CBCAST String
+import CBCAST.Event as Event
+open Event String
 
-module CBCAST-Example where
+module CBCAST.Example where
 
 alice₁ : Event
 alice₁ = send "I lost my wallet..." empty
