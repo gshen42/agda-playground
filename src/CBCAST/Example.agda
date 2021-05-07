@@ -43,20 +43,20 @@ carol₃ = receive "I lost my wallet..." alice₁ p carol₂
   where
     p = empty , refl
 
-foo₁ : alice₁ happensBefore alice₂
+foo₁ : alice₁ ─→ alice₂
 foo₁ = processOrder₁ refl
 
-foo₂ : alice₁ happensBefore bob₁
+foo₂ : alice₁ ─→ bob₁
 foo₂ = sendBeforeReceive refl
 
-foo₃ : bob₁ happensBefore bob₂
+foo₃ : bob₁ ─→ bob₂
 foo₃ = processOrder₂ refl
 
-foo₄ : alice₂ happensBefore bob₂
+foo₄ : alice₂ ─→ bob₂
 foo₄ = sendBeforeReceive refl
 
-foo₅ : alice₁ happensBefore bob₂
+foo₅ : alice₁ ─→ bob₂
 foo₅ = trans foo₁ foo₄
 
-foo₆ : ¬ (bob₂ happensBefore alice₁)
+foo₆ : ¬ (bob₂ ─→ alice₁)
 foo₆ = hb-asymmetric foo₅

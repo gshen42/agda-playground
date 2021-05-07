@@ -82,8 +82,8 @@ causal-consistent w = ∀ {m₁ e₁ e₁[send]m₁ e' m₂ e₂ e₂[send]m₂ 
                     → e₂ ∈ (history w)
                     → (receive m₁ e₁ e₁[send]m₁ e')  ∈ (toList (processEvents w p))
                     → (receive m₂ e₂ e₂[send]m₂ e'') ∈ (toList (processEvents w p))
-                    → (e₁ happensBefore e₂)
-                    → (receive m₁ e₁ e₁[send]m₁ e') happensBefore (receive m₂ e₂ e₂[send]m₂ e'')
+                    → (e₁ ─→ e₂)
+                    → (receive m₁ e₁ e₁[send]m₁ e') ─→ (receive m₂ e₂ e₂[send]m₂ e'')
 
 postulate
   -- this property is not true for unconstrained broadcast, list here only for completeness
