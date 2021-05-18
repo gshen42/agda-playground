@@ -16,47 +16,37 @@ alice₂ : Event
 alice₂ = send "Found it!" alice₁
 
 bob₁ : Event
-bob₁ = receive "I lost my wallet..." alice₁ p empty
-  where
-    p = empty , refl
+bob₁ = receive alice₁ empty
 
 bob₂ : Event
-bob₂ = receive "Found it!" alice₂ p bob₁
-  where
-    p = alice₁ , refl
+bob₂ = receive alice₂ bob₁
 
 bob₃ : Event
 bob₃ = send "Glad to hear it!" bob₂
 
 carol₁ : Event
-carol₁ = receive "I lost my wallet..." alice₁ p empty
-  where
-    p = empty , refl
+carol₁ = receive alice₁ empty
 
 carol₂ : Event
-carol₂ = receive "Glad to hear it!" bob₃ p carol₁
-  where
-    p = bob₂ , refl
+carol₂ = receive bob₃ carol₁
 
 carol₃ : Event
-carol₃ = receive "I lost my wallet..." alice₁ p carol₂
-  where
-    p = empty , refl
+carol₃ = receive alice₁ carol₂
 
-foo₁ : alice₁ ─→ alice₂
-foo₁ = processOrder₁ refl
+foo₁ : alice₁ hb alice₂
+foo₁ = processOrder₁
 
-foo₂ : alice₁ ─→ bob₁
-foo₂ = sendBeforeReceive refl
+foo₂ : alice₁ hb bob₁
+foo₂ = sendBeforeReceive
 
-foo₃ : bob₁ ─→ bob₂
-foo₃ = processOrder₂ refl
+foo₃ : bob₁ hb bob₂
+foo₃ = processOrder₂
 
-foo₄ : alice₂ ─→ bob₂
-foo₄ = sendBeforeReceive refl
+foo₄ : alice₂ hb bob₂
+foo₄ = sendBeforeReceive
 
-foo₅ : alice₁ ─→ bob₂
+foo₅ : alice₁ hb bob₂
 foo₅ = trans foo₁ foo₄
 
-foo₆ : ¬ (bob₂ ─→ alice₁)
+foo₆ : ¬ (bob₂ hb alice₁)
 foo₆ = hb-asymmetric foo₅
