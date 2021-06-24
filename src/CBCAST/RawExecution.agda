@@ -36,15 +36,21 @@ update w n p n' with n ≟ n'
 data _==>_ : World → World → Set where
   broadcast : ∀ (w : World) (sender : ℕ) (msg : Message)
             → let senderVc = tick (procVc (w sender)) sender
-            in w ==> (update w sender record { procVc = senderVc; history = send msg senderVc ∷ (history (w sender)) })
+              in w ==> (update w sender record { procVc = senderVc
+                                               ; history = send msg senderVc ∷ (history (w sender))
+                                               })
 
-  delivery : ∀ (w : World) (sender receiver : ℕ) (e : Event)
-           → e ∈ (history (w sender))
-           → let receiverVc = tick (combine (procVc (w sender)) (procVc (w receiver))) receiver
-             in w ==> (update w receiver record { procVc = receiverVc; history = receive e receiverVc ∷ (history (w receiver)) } )
+  deliver : ∀ (w : World) (sender receiver : ℕ) (e : Event)
+          → e ∈ (history (w sender))
+          → let receiverVc = tick (combine (vc e) (procVc (w receiver))) receiver
+            in w ==> (update w receiver record { procVc = receiverVc
+                                               ; history = receive e receiverVc ∷ (history (w receiver))
+                                               })
 
 world₀ : World
-world₀ = λ _ → record { procVc = (λ _ → 0); history = [] }
+world₀ = λ _ → record { procVc = (λ _ → 0)
+                      ; history = []
+                      }
 
 data _==>*_ : World → World → Set where
   lift : ∀ {w₁ w₂}
