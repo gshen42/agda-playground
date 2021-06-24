@@ -1,3 +1,3 @@
 name: agda-playground
+depend: standard-library
 include: src
-         lib/agda-stdlib/src
