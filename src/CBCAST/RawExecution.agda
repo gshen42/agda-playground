@@ -1,4 +1,4 @@
-open import Data.Nat using (ℕ; zero; suc; _≟_)
+open import Data.Nat using (ℕ; _≟_)
 open import Data.List using (List; []; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Relation.Nullary using (yes; no)
@@ -21,6 +21,7 @@ e₁ hb e₂ = vc e₁ ≤ vc e₂
 record Process : Set where
   field
     procVc  : VectorClock
+    sends   : List Event
     history : List Event
 
 open Process
@@ -35,20 +36,28 @@ update w n p n' with n ≟ n'
 
 data _==>_ : World → World → Set where
   broadcast : ∀ (w : World) (sender : ℕ) (msg : Message)
-            → let senderVc = tick (procVc (w sender)) sender
-              in w ==> (update w sender record { procVc = senderVc
-                                               ; history = send msg senderVc ∷ (history (w sender))
-                                               })
+            → let senderP  = w sender
+                  senderVc = tick (procVc senderP) sender
+              in
+              w ==> (update w sender record { procVc  = senderVc
+                                            ; sends   = send msg senderVc ∷ sends senderP
+                                            ; history = send msg senderVc ∷ history senderP
+                                            })
 
   deliver : ∀ (w : World) (sender receiver : ℕ) (e : Event)
-          → e ∈ (history (w sender))
-          → let receiverVc = tick (combine (vc e) (procVc (w receiver))) receiver
-            in w ==> (update w receiver record { procVc = receiverVc
-                                               ; history = receive e receiverVc ∷ (history (w receiver))
-                                               })
+          → let senderP    = w sender
+                receiverP  = w receiver
+                receiverVc = tick (combine (vc e) (procVc receiverP)) receiver
+            in
+            e ∈ sends senderP
+          → w ==> (update w receiver record { procVc  = receiverVc
+                                            ; sends   = sends receiverP
+                                            ; history = receive e receiverVc ∷ history receiverP
+                                            })
 
 world₀ : World
-world₀ = λ _ → record { procVc = (λ _ → 0)
+world₀ = λ _ → record { procVc  = (λ _ → 0)
+                      ; sends   = []
                       ; history = []
                       }
 
