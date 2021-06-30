@@ -8,6 +8,7 @@ module CBCAST.VectorClock where
 VectorClock : Set
 VectorClock = ℕ → ℕ
 
+infix 10 _[_]
 _[_] : VectorClock → ℕ → ℕ
 vc [ k ] = vc k
 
