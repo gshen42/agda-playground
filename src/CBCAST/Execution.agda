@@ -96,18 +96,12 @@ data _==>*_ : World → World → Set where
 Reachable : World → Set
 Reachable w = world₀ ==>* w
 
-causal-delivery : Set
-causal-delivery = ∀ {msg₁ msg₂ vc₁ vc₂ p₁ p₂ vc₁' vc₂' p}
-                  → let e          = send msg₁ vc₁
-                        e'         = send msg₂ vc₂
-                        deliverₚe  = receive e  vc₁'
-                        deliverₚe' = receive e' vc₂'
-                    in
-                  ∀ {w}
-                  → Reachable w
-                  → e  ∈ history (w p₁)
-                  → e' ∈ history (w p₂)
-                  → deliverₚe  ∈ history (w p)
-                  → deliverₚe' ∈ history (w p)
-                  → e hb e'
-                  → deliverₚe hb deliverₚe'
+causal-delivery : World → Set
+causal-delivery w = ∀ {p e₁ e₂ vc₁ vc₂}
+                    → let deliverₚe₁ = receive e₁ vc₁
+                          deliverₚe₂ = receive e₂ vc₂
+                      in
+                      deliverₚe₁ ∈ history (w p)
+                    → deliverₚe₂ ∈ history (w p)
+                    → e₁ hb e₂
+                    → deliverₚe₁ hb deliverₚe₂
