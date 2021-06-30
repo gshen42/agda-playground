@@ -1,8 +1,10 @@
-open import Data.Nat using (ℕ; _≟_)
+open import Data.Nat as ℕ using (ℕ)
 open import Data.List using (List; []; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
+open import Data.List.Relation.Unary.Any using (Any; here; there)
 open import Data.Product using (_×_; _,_)
 open import Relation.Nullary using (yes; no)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; _≢_)
 
 open import CBCAST.VectorClock
 open import CBCAST.Protocol
@@ -29,7 +31,7 @@ meta (send    (_ , m) _) = m
 meta (receive e       _) = meta e
 
 _hb_ : Event → Event → Set
-e₁ hb e₂ = vc e₁ ≤ vc e₂
+e₁ hb e₂ = vc e₁ < vc e₂
 
 record Process : Set where
   field
@@ -43,9 +45,9 @@ World : Set
 World = ℕ → Process
 
 update : World → ℕ → Process → World
-update w n p n' with n ≟ n'
-...                | (yes _) = p
-...                | (no  _) = w n'
+update w n p n' with n ℕ.≟ n'
+...                | yes _   = p
+...                | no  _   = w n'
 
 data _==>_ : World → World → Set where
   broadcast : ∀ (w : World) (sender : ℕ) (msg : Message) (msgMeta : MessageMetadata) (procMetaNew : ProcessMetadata)
@@ -62,11 +64,12 @@ data _==>_ : World → World → Set where
   deliver : ∀ (w : World) (sender receiver : ℕ) (msg : Message) (msgMeta : MessageMetadata) (senderVc : VectorClock) (procMetaNew : ProcessMetadata)
           → let senderP      = w sender
                 receiverP    = w receiver
-                receiverVc   = tick (combine senderVc (procVc receiverP)) receiver
+                receiverVc   = tick (combine (procVc receiverP) senderVc) receiver
                 sendEvent    = send (msg , msgMeta) senderVc
                 receiveEvent = receive sendEvent receiverVc
             in
-            sendEvent ∈ history senderP
+            sender ≢ receiver
+          → sendEvent ∈ history senderP
           → Deliverable receiver msgMeta (procMeta receiverP)
           → DeliverHandler receiver msgMeta (procMeta receiverP) procMetaNew
           → w ==> (update w receiver record { procVc  = receiverVc
@@ -96,12 +99,36 @@ data _==>*_ : World → World → Set where
 Reachable : World → Set
 Reachable w = world₀ ==>* w
 
-causal-delivery : World → Set
-causal-delivery w = ∀ {p e₁ e₂ vc₁ vc₂}
-                    → let deliverₚe₁ = receive e₁ vc₁
-                          deliverₚe₂ = receive e₂ vc₂
-                      in
-                      deliverₚe₁ ∈ history (w p)
-                    → deliverₚe₂ ∈ history (w p)
-                    → e₁ hb e₂
-                    → deliverₚe₁ hb deliverₚe₂
+causal-delivery[_] : World → Set
+causal-delivery[ w ] = ∀ {p e₁ e₂ vc₁ vc₂}
+                     → let deliverₚe₁ = receive e₁ vc₁
+                           deliverₚe₂ = receive e₂ vc₂
+                       in
+                       deliverₚe₁ ∈ history (w p)
+                     → deliverₚe₂ ∈ history (w p)
+                     → e₁ hb e₂
+                     → deliverₚe₁ hb deliverₚe₂
+
+history≤procVc[_] : World → Set
+history≤procVc[ w ] = ∀ {p e} → e ∈ history (w p) → vc e ≤ procVc (w p)
+
+history≤procVc : ∀ {w} → Reachable w → history≤procVc[ w ]
+history≤procVc x {p} = history≤procVc-inductive* x (history≤procVc₀ {p})
+  where
+  history≤procVc₀ : history≤procVc[ world₀ ]
+  history≤procVc₀ ()
+
+  history≤procVc-inductive : ∀ {w w′} → w ==> w′ → history≤procVc[ w ] → history≤procVc[ w′ ]
+  history≤procVc-inductive (broadcast _ sender _ _ _ _)           h {p} x           with sender ℕ.≟ p
+  history≤procVc-inductive (broadcast _ sender _ _ _ _)           h {p} (here refl)    | yes _          = ≤-refl
+  history≤procVc-inductive (broadcast _ sender _ _ _ _)           h {p} (there x)      | yes _          = ≤-trans (h x) (<⇒≤ (vc<tick[vc] {p = sender}))
+  history≤procVc-inductive (broadcast _ sender _ _ _ _)           h {p} x              | no  _          = h x
+  history≤procVc-inductive (deliver _ _ receiver _ _ _ _ _ _ _ _) h {p} x           with receiver ℕ.≟ p
+  history≤procVc-inductive (deliver _ _ receiver _ _ _ _ _ _ _ _) h {p} (here refl)    | yes _          = ≤-refl
+  history≤procVc-inductive (deliver _ _ receiver _ _ _ _ _ _ _ _) h {p} (there x)      | yes _          = ≤-trans (h x) (<⇒≤ (<-trans vc<combine[vc,vc′] (vc<tick[vc] {p = receiver})))
+  history≤procVc-inductive (deliver _ _ receiver _ _ _ _ _ _ _ _) h {p} x              | no  _          = h x
+
+  history≤procVc-inductive* : ∀ {w w′} → w ==>* w′ → history≤procVc[ w ] → history≤procVc[ w′ ]
+  history≤procVc-inductive* (lift x)   h = history≤procVc-inductive x h
+  history≤procVc-inductive* refl       h = h
+  history≤procVc-inductive* (tran x y) h = history≤procVc-inductive* y (history≤procVc-inductive* x h)

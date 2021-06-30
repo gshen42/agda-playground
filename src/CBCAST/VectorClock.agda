@@ -26,3 +26,18 @@ tick vc n n' with n ≟ n'
 
 combine : VectorClock → VectorClock → VectorClock
 combine vc₁ vc₂ n = (vc₁ n) ⊔ (vc₂ n)
+
+postulate
+  ≤-refl : ∀ {vc} → vc ≤ vc
+
+  ≤-trans : ∀ {vc₁ vc₂ vc₃} → vc₁ ≤ vc₂ → vc₂ ≤ vc₃ → vc₁ ≤ vc₃
+
+  <⇒≤ : ∀ {vc₁ vc₂} → vc₁ < vc₂ → vc₁ ≤ vc₂
+
+  <-trans : ∀ {vc₁ vc₂ vc₃} → vc₁ < vc₂ → vc₂ < vc₃ → vc₁ < vc₃
+
+  <-transˡ : ∀ {vc₁ vc₂ vc₃} → vc₁ ≤ vc₂ → vc₂ < vc₃ → vc₁ < vc₃
+
+  vc<tick[vc] : ∀ {vc p} → vc < tick vc p
+
+  vc<combine[vc,vc′] : ∀ {vc vc′} → vc < combine vc vc′
