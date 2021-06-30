@@ -98,16 +98,16 @@ Reachable w = world₀ ==>* w
 
 causal-delivery : Set
 causal-delivery = ∀ {msg₁ msg₂ vc₁ vc₂ p₁ p₂ vc₁' vc₂' p}
-                  → let e  = (send msg₁ vc₁)
-                        e' = (send msg₂ vc₂)
-                        deliverₚe  = (receive e  vc₁')
-                        deliverₚe' = (receive e' vc₂')
+                  → let e          = send msg₁ vc₁
+                        e'         = send msg₂ vc₂
+                        deliverₚe  = receive e  vc₁'
+                        deliverₚe' = receive e' vc₂'
                     in
                   ∀ {w}
                   → Reachable w
-                  → e  ∈ (history (w p₁))
-                  → e' ∈ (history (w p₂))
-                  → deliverₚe  ∈ (history (w p))
-                  → deliverₚe' ∈ (history (w p))
+                  → e  ∈ history (w p₁)
+                  → e' ∈ history (w p₂)
+                  → deliverₚe  ∈ history (w p)
+                  → deliverₚe' ∈ history (w p)
                   → e hb e'
                   → deliverₚe hb deliverₚe'
