@@ -72,8 +72,8 @@ data _==>_ : World → World → Set where
           → sendEvent ∈ history senderP
           → Deliverable receiver msgMeta (procMeta receiverP)
           → DeliverHandler receiver msgMeta (procMeta receiverP) procMetaNew
-          → w ==> (update w receiver record { procVc  = receiverVc
-                                            ; history = receiveEvent ∷ history receiverP
+          → w ==> (update w receiver record { procVc   = receiverVc
+                                            ; history  = receiveEvent ∷ history receiverP
                                             ; procMeta = procMetaNew
                                             })
 

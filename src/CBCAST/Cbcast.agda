@@ -91,9 +91,9 @@ causal-delivery rw {p} = causal-delivery-inductive* refl rw (causal-delivery₀ 
   causal-delivery₀ ()
 
   causal-delivery-inductive : ∀ {w w′} → Reachable w → w ==> w′ → causal-delivery[ w ] → causal-delivery[ w′ ]
-  causal-delivery-inductive _  (broadcast _ sender _ _ _ _)           h {p}      x           y           z with sender ≟ p
-  causal-delivery-inductive _  (broadcast _ sender _ _ _ _)           h {p}      (there x)   (there y)   z    | yes _              = h x y z
-  causal-delivery-inductive _  (broadcast _ sender _ _ _ _)           h {p}      x           y           z    | no  _              = h x y z
+  causal-delivery-inductive _  (broadcast _ sender _ _ _ _)           h {p}      x           y           z       with sender ≟ p
+  causal-delivery-inductive _  (broadcast _ sender _ _ _ _)           h {p}      (there x)   (there y)   z          | yes _        = h x y z
+  causal-delivery-inductive _  (broadcast _ sender _ _ _ _)           h {p}      x           y           z          | no  _        = h x y z
   causal-delivery-inductive _  (deliver _ _ receiver _ _ _ _ _ _ _ _) h {p}      x           y           z       with receiver ≟ p
   causal-delivery-inductive _  (deliver _ _ receiver _ _ _ _ _ _ _ _) h {p}      (here refl) (here refl) (_ , z)    | yes _        = ⊥-elim (z refl)
   causal-delivery-inductive rw (deliver _ _ receiver _ _ _ _ _ i d _) h {p} {e₁} (here refl) (there y)   z          | yes _        = ⊥-elim (no-delivery {e′ = e₁} rw y i z d)
