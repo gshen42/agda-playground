@@ -1,4 +1,5 @@
-open import Data.Nat as ℕ using (ℕ; _+_; _≤_; _≟_)
+open import Data.Nat as ℕ using (ℕ; _+_; _≟_)
+import Data.Nat.Properties as ℕₚ
 open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List.Membership.Propositional using (_∈_)
@@ -27,11 +28,38 @@ postulate
 open import CBCAST.Execution Message cbcast as Execution
 open Process
 
-lemma₁ : ∀ {w p e e′ vc}
-       → Reachable w
-       → receive e vc ∈ history (w p)
-       → e′ hb e
-       → ¬ Execution.Deliverable p (meta e′) (procMeta (w p))
+metaVc : Event → VectorClock
+metaVc e = proj₁ (meta e)
+
+hb⇒metaVc : ∀ {w p₁ p₂ e₁ e₂}
+          → Reachable w
+          → e₁ ∈ history (w p₁)
+          → e₂ ∈ history (w p₂)
+          → e₁ hb e₂
+          → metaVc e₁ ≤ metaVc e₂
+
+history≤procMeta[_] : World → Set
+history≤procMeta[ w ] = ∀ {p e} → e ∈ history (w p) → metaVc e ≤ procMeta (w p)
+
+history≤procMeta : ∀ {w} → Reachable w → history≤procMeta[ w ]
+
+no-delivery : ∀ {w p p′ e e′ vc}
+            → Reachable w
+            → receive e vc ∈ history (w p)
+            → e′ ∈ history (w p′)
+            → e′ hb e
+            → ¬ Execution.Deliverable p (meta e′) (procMeta (w p))
+no-delivery {e′ = e′} rw a b c d = let (p₂ , ∃p₂)                        = receive-wellformed rw a
+                                       metaVc[e′]≤metaVc[e]              = hb⇒metaVc {p₂ = p₂} rw b ∃p₂ c
+                                       metaVc[e]≤procMeta[w[p]]          = history≤procMeta rw a
+                                       metaVc[e′]≤procMeta[w[p]]         = ≤-trans metaVc[e′]≤metaVc[e] metaVc[e]≤procMeta[w[p]]
+                                       k                                 = proj₂ (meta e′)
+                                       metaVc[e′][k]≡procMeta[w[p]][k]+1 = proj₁ (d k) refl
+                                       metaVc[e′][k]≤procMeta[w[p]][k]   = metaVc[e′]≤procMeta[w[p]] k
+                                   in foo metaVc[e′][k]≡procMeta[w[p]][k]+1 metaVc[e′][k]≤procMeta[w[p]][k]
+  where
+  foo : ∀ {x y} → x ≡ y + 1 → ¬ (x ℕ.≤ y)
+  foo {y = y} refl rewrite ℕₚ.+-comm y 1 = ℕₚ.1+n≰n
 
 causal-delivery : ∀ {w} → Reachable w → causal-delivery[ w ]
 causal-delivery rw {p} = causal-delivery-inductive* refl rw (causal-delivery₀ {p})
@@ -45,7 +73,7 @@ causal-delivery rw {p} = causal-delivery-inductive* refl rw (causal-delivery₀ 
   causal-delivery-inductive _  (broadcast _ sender _ _ _ _)           h {p}      x           y           z    | no  _              = h x y z
   causal-delivery-inductive _  (deliver _ _ receiver _ _ _ _ _ _ _ _) h {p}      x           y           z       with receiver ≟ p
   causal-delivery-inductive _  (deliver _ _ receiver _ _ _ _ _ _ _ _) h {p}      (here refl) (here refl) (_ , z)    | yes _        = ⊥-elim (z refl)
-  causal-delivery-inductive rw (deliver _ _ receiver _ _ _ _ _ _ d _) h {p} {e₁} (here refl) (there y)   z          | yes _        = ⊥-elim (lemma₁ {e′ = e₁} rw y z d)
+  causal-delivery-inductive rw (deliver _ _ receiver _ _ _ _ _ i d _) h {p} {e₁} (here refl) (there y)   z          | yes _        = ⊥-elim (no-delivery {e′ = e₁} rw y i z d)
   causal-delivery-inductive rw (deliver _ _ receiver _ _ _ _ _ _ _ _) h {p}      (there x)   (here refl) z          | yes _        = <-transˡ (history≤procVc rw x) (<-trans vc<combine[vc,vc′] (vc<tick[vc] {p = receiver}))
   causal-delivery-inductive _  (deliver _ _ receiver _ _ _ _ _ _ _ _) h {p}      (there x)   (there y)   z          | yes _        = h x y z
   causal-delivery-inductive _  (deliver _ _ receiver _ _ _ _ _ _ _ _) h {p}      x           y           z          | no  _        = h x y z

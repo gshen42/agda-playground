@@ -2,7 +2,7 @@ open import Data.Nat as ℕ using (ℕ)
 open import Data.List using (List; []; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (Any; here; there)
-open import Data.Product using (_×_; _,_)
+open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃; ∃-syntax)
 open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; _≢_)
 
@@ -109,8 +109,12 @@ causal-delivery[ w ] = ∀ {p e₁ e₂ vc₁ vc₂}
                      → e₁ hb e₂
                      → deliverₚe₁ hb deliverₚe₂
 
+-- some useful facts about reachable world
+
 history≤procVc[_] : World → Set
-history≤procVc[ w ] = ∀ {p e} → e ∈ history (w p) → vc e ≤ procVc (w p)
+history≤procVc[ w ] = ∀ {p e}
+                    → e ∈ history (w p)
+                    → vc e ≤ procVc (w p)
 
 history≤procVc : ∀ {w} → Reachable w → history≤procVc[ w ]
 history≤procVc x {p} = history≤procVc-inductive* x (history≤procVc₀ {p})
@@ -132,3 +136,40 @@ history≤procVc x {p} = history≤procVc-inductive* x (history≤procVc₀ {p})
   history≤procVc-inductive* (lift x)   h = history≤procVc-inductive x h
   history≤procVc-inductive* refl       h = h
   history≤procVc-inductive* (tran x y) h = history≤procVc-inductive* y (history≤procVc-inductive* x h)
+
+∈-stable : ∀ {w w′}
+         → w ==> w′
+         → ∀ {p e}
+         → e ∈ history (w p)
+         → e ∈ history (w′ p)
+∈-stable (broadcast _ sender _ _ _ _)           {p} h with sender ℕ.≟ p
+...                                                      | yes refl       = there h
+...                                                      | no  _          = h
+∈-stable (deliver _ _ receiver _ _ _ _ _ _ _ _) {p} h with receiver ℕ.≟ p
+...                                                      | yes refl       = there h
+...                                                      | no  _          = h
+
+receive-wellformed[_] : World → Set
+receive-wellformed[ w ] = ∀ {p e vc}
+                        → receive e vc ∈ history (w p)
+                        → ∃[ p′ ] e ∈ history (w p′)
+
+receive-wellformed : ∀ {w} → Reachable w → receive-wellformed[ w ]
+receive-wellformed x {p} = receive-wellformed-inductive* x (receive-wellformed₀ {p})
+  where
+  receive-wellformed₀ : receive-wellformed[ world₀ ]
+  receive-wellformed₀ ()
+
+  receive-wellformed-inductive : ∀ {w w′} → w ==> w′ → receive-wellformed[ w ] → receive-wellformed[ w′ ]
+  receive-wellformed-inductive e@(broadcast _ sender _ _ _ _)                h {p} x           with sender ℕ.≟ p                                            -- this is an interesting 'with' clause
+  receive-wellformed-inductive e@(broadcast _ sender _ _ _ _)                h {p} (there x)      | yes _          = proj₁ (h x) , ∈-stable e (proj₂ (h x)) -- the definition for each case is exactly the same
+  receive-wellformed-inductive e@(broadcast _ sender _ _ _ _)                h {p} x              | no  _          = proj₁ (h x) , ∈-stable e (proj₂ (h x)) -- however we still need the 'with' to help evaluate in type
+  receive-wellformed-inductive e@(deliver _ sender receiver _ _ _ _ _ i _ _) h {p} x           with receiver ℕ.≟ p
+  receive-wellformed-inductive e@(deliver _ sender receiver _ _ _ _ _ i _ _) h {p} (here refl)    | yes _          = sender , ∈-stable e i
+  receive-wellformed-inductive e@(deliver _ sender receiver _ _ _ _ _ i _ _) h {p} (there x)      | yes _          = proj₁ (h x), ∈-stable e (proj₂ (h x))
+  receive-wellformed-inductive e@(deliver _ sender receiver _ _ _ _ _ i _ _) h {p} x              | no  _          = proj₁ (h x) , ∈-stable e (proj₂ (h x))
+
+  receive-wellformed-inductive* : ∀ {w w′} → w ==>* w′ → receive-wellformed[ w ] → receive-wellformed[ w′ ]
+  receive-wellformed-inductive* (lift x)   h = receive-wellformed-inductive x h
+  receive-wellformed-inductive* refl       h = h
+  receive-wellformed-inductive* (tran x y) h = receive-wellformed-inductive* y (receive-wellformed-inductive* x h)
