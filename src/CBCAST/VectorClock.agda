@@ -41,3 +41,5 @@ postulate
   vc<tick[vc] : ∀ {vc p} → vc < tick vc p
 
   vc<combine[vc,vc′] : ∀ {vc vc′} → vc < combine vc vc′
+
+  vc<combine[vc′,vc] : ∀ {vc vc′} → vc < combine vc′ vc

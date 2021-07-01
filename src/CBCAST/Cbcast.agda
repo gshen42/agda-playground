@@ -39,9 +39,32 @@ hb⇒metaVc : ∀ {w p₁ p₂ e₁ e₂}
           → metaVc e₁ ≤ metaVc e₂
 
 history≤procMeta[_] : World → Set
-history≤procMeta[ w ] = ∀ {p e} → e ∈ history (w p) → metaVc e ≤ procMeta (w p)
+history≤procMeta[ w ] = ∀ {p e}
+                      → e ∈ history (w p)
+                      → metaVc e ≤ procMeta (w p)
 
+-- this proof is very similar to 'history≤procVc' in 'Execution.agda'
 history≤procMeta : ∀ {w} → Reachable w → history≤procMeta[ w ]
+history≤procMeta x {p} = history≤procMeta-inductive* x (history≤procMeta₀ {p})
+  where
+  history≤procMeta₀ : history≤procMeta[ world₀ ]
+  history≤procMeta₀ ()
+
+  history≤procMeta-inductive : ∀ {w w′} → w ==> w′ → history≤procMeta[ w ] → history≤procMeta[ w′ ]
+  history≤procMeta-inductive (broadcast _ sender _ _ _ (refl , refl))           h {p} x           with sender ≟ p
+  history≤procMeta-inductive (broadcast _ sender _ _ _ (refl , refl))           h {p} (here refl)    | yes _      = ≤-refl
+  history≤procMeta-inductive (broadcast _ sender _ _ _ (refl , refl))           h {p} (there x)      | yes _      = ≤-trans (h x) (<⇒≤ (vc<tick[vc] {p = sender}))
+  history≤procMeta-inductive (broadcast _ sender _ _ _ (refl , refl))           h {p} x              | no  _      = h x
+  history≤procMeta-inductive (deliver _ _ receiver _ _ _ _ _ _ _ refl)          h {p} x           with receiver ≟ p
+  history≤procMeta-inductive (deliver _ _ receiver _ _ _ _ _ _ _ refl)          h {p} (here refl)    | yes _      = <⇒≤ vc<combine[vc,vc′]
+  history≤procMeta-inductive (deliver _ _ receiver _ _ _ _ _ _ _ refl)          h {p} (there x)      | yes _      = ≤-trans (h x) (<⇒≤ vc<combine[vc′,vc])
+  history≤procMeta-inductive (deliver _ _ receiver _ _ _ _ _ _ _ refl)          h {p} x              | no  _      = h x
+
+  history≤procMeta-inductive* : ∀ {w w′} → w ==>* w′ → history≤procMeta[ w ] → history≤procMeta[ w′ ]
+  history≤procMeta-inductive* (lift x)   h = history≤procMeta-inductive x h
+  history≤procMeta-inductive* refl       h = h
+  history≤procMeta-inductive* (tran x y) h = history≤procMeta-inductive* y (history≤procMeta-inductive* x h)
+
 
 no-delivery : ∀ {w p p′ e e′ vc}
             → Reachable w
