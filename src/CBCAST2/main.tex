@@ -1,0 +1,46 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathpartir}
+\usepackage{xcolor}
+
+\newcommand\doubleplus{+\kern-1.3ex+\kern0.8ex}
+\newcommand\mdoubleplus{\ensuremath{\mathbin{+\mkern-10mu+}}}
+
+\begin{document}
+\[
+\begin{array}{rcll}
+  s & : & S & \mathrm{String} \\
+  p & : & P & \mathrm{Process \ ID} \\
+  c & : & C = \mathbb{N} & \mathrm{Process \ Counter} \\
+  h & : & H = [P \times C] & \mathrm{Causal \ History} \\
+  m & : & M = S \times P \times C \times H  \qquad & \mathrm{Message} \\
+  n & : & N = P \to C \times H & \mathrm{Processes} \\
+  t & : & T = [M] & \mathrm{Messages \ in \ Transit} \\
+  w & : & W = N \times T & \mathrm{World} \\
+  w_0 & = & \langle (\lambda p. \, \langle 1 , [] \rangle) ,\ [] \rangle & \mathrm{Initial \ World} \\
+\end{array}
+\]
+
+\vspace{2em}
+
+\boxed{w \longrightarrow w'}
+
+\[
+\inferrule
+    {\langle c , h \rangle = n \ p \\ m = \langle s, p, c, h \rangle }
+    {\langle n ,\: t \rangle \longrightarrow \langle n[p \mapsto \langle c + 1, \langle p , c \rangle :: h \rangle] ,\ m :: t \rangle}
+    \quad \textsc{Broadcast}
+\]
+
+\vspace{2em}    
+
+\[
+\inferrule
+    {\langle c , h \rangle = n \ p \\ \langle s, p_m, c_m, h_m \rangle \in t \\ h_m \subseteq h \\ \Bigg[ \langle p_m , c_m \rangle \notin h \Bigg]}
+    {\langle n ,\: t \rangle \longrightarrow \langle n[p \mapsto \langle c ,  \langle p_m, c_m \rangle :: h \rangle] ,\ t \rangle}
+    \quad \textsc{Deliver}
+\]
+        
+\end{document}
