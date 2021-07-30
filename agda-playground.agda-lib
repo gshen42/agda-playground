@@ -1,3 +1,4 @@
 name: agda-playground
 depend: standard-library
+	schmitty
 include: src
