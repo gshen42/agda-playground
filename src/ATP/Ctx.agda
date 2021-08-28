@@ -8,14 +8,14 @@ infixl 32 _,_
 
 data Ctx : Set where
   ·   : Ctx
-  _,_ : Ctx → Prop′ → Ctx
+  _,_ : Ctx → `Prop → Ctx
 
 private
   variable
-    A B : Prop′
+    A B : `Prop
     Γ Δ : Ctx
 
-data _∋_ : Ctx → Prop′ → Set where
+data _∋_ : Ctx → `Prop → Set where
   Z : Γ , A ∋ A
 
   S : Γ     ∋ A

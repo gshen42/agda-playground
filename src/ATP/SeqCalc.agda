@@ -4,7 +4,6 @@ open import ATP.Prop
 open import ATP.Ctx
 
 open import Data.Product using (∃; ∃-syntax; proj₁; proj₂; -,_) renaming (_,_ to infix 4 ⟨_,_⟩)
-open import Reflection as Refl
 
 infix  20 _⇒_^_
 infixr 21 _+_
@@ -16,55 +15,55 @@ data Size : Set where
 
 private
   variable
-    P       : Atom
-    A B C D : Prop′
+    P       : `Atom
+    A B C D : `Prop
     Γ Δ     : Ctx
     m n     : Size
 
 -- to facilitate termination checking, each sequent is indexed by the
 -- size of the derivation
-data _⇒_^_ : Ctx → Prop′ → Size → Set where
+data _⇒_^_ : Ctx → `Prop → Size → Set where
   idᵖ : Γ     ∋ ` P
       → Γ     ⇒ ` P   ^ zero
   -- this rule only allows atomic proposition to be concluded this
   -- matches well with the verificationist point of view the general
   -- version for all proposition is admissible (see "id" below)
 
-  ∧R  : Γ     ⇒ A     ^ m
-      → Γ     ⇒ B     ^ n
-      → Γ     ⇒ A ∧ B ^ m + n
+  ∧R  : Γ     ⇒ A      ^ m
+      → Γ     ⇒ B      ^ n
+      → Γ     ⇒ A `∧ B ^ m + n
 
-  ∧L₁ : Γ     ∋ A ∧ B
-      → Γ , A ⇒ C     ^ m
-      → Γ     ⇒ C     ^ suc m
+  ∧L₁ : Γ     ∋ A `∧ B
+      → Γ , A ⇒ C      ^ m
+      → Γ     ⇒ C      ^ suc m
 
-  ∧L₂ : Γ     ∋ A ∧ B
-      → Γ , B ⇒ C     ^ m
-      → Γ     ⇒ C     ^ suc m
+  ∧L₂ : Γ     ∋ A `∧ B
+      → Γ , B ⇒ C      ^ m
+      → Γ     ⇒ C      ^ suc m
 
-  ⊃R  : Γ , A ⇒ B     ^ m
-      → Γ     ⇒ A ⊃ B ^ suc m
+  ⊃R  : Γ , A ⇒ B      ^ m
+      → Γ     ⇒ A `⊃ B ^ suc m
 
-  ⊃L  : Γ     ∋ A ⊃ B
-      → Γ     ⇒ A     ^ m
-      → Γ , B ⇒ C     ^ n
-      → Γ     ⇒ C     ^ m + n
+  ⊃L  : Γ     ∋ A `⊃ B
+      → Γ     ⇒ A      ^ m
+      → Γ , B ⇒ C      ^ n
+      → Γ     ⇒ C      ^ m + n
 
-  ∨R₁ : Γ     ⇒ A     ^ m
-      → Γ     ⇒ A ∨ B ^ suc m
+  ∨R₁ : Γ     ⇒ A      ^ m
+      → Γ     ⇒ A `∨ B ^ suc m
 
-  ∨R₂ : Γ     ⇒ B     ^ m
-      → Γ     ⇒ A ∨ B ^ suc m
+  ∨R₂ : Γ     ⇒ B      ^ m
+      → Γ     ⇒ A `∨ B ^ suc m
 
-  ∨L  : Γ     ∋ A ∨ B
-      → Γ , A ⇒ C     ^ m
-      → Γ , B ⇒ C     ^ n
-      → Γ     ⇒ C     ^ m + n
+  ∨L  : Γ     ∋ A `∨ B
+      → Γ , A ⇒ C      ^ m
+      → Γ , B ⇒ C      ^ n
+      → Γ     ⇒ C      ^ m + n
 
-  ⊤R  : Γ ⇒ ⊤         ^ zero
+  ⊤R  : Γ ⇒ `⊤         ^ zero
 
-  ⊥L  : Γ ∋ ⊥
-      → Γ ⇒ C         ^ zero
+  ⊥L  : Γ ∋ `⊥
+      → Γ ⇒ C          ^ zero
 
 -- structural rules
 struct : Γ ⊆ Δ
@@ -96,12 +95,12 @@ exch x = struct ((λ { Z → S Z ; (S Z) → Z ; (S (S i)) → S (S i) })) x
 
 id : Γ ∋ A
    → ∃[ q ] Γ ⇒ A ^ q
-id {A = ` P}   x = -, idᵖ x
-id {A = A ∧ B} x = -, ∧R (∧L₁ x (proj₂ (id Z))) (∧L₂ x (proj₂ (id Z)))
-id {A = A ⊃ B} x = -, ⊃R (⊃L (S x) (proj₂ (id Z)) (proj₂ (id Z)))
-id {A = A ∨ B} x = -, ∨L x (∨R₁ (proj₂ (id Z))) (∨R₂ (proj₂ (id Z)))
-id {A = ⊤}     x = -, ⊤R
-id {A = ⊥}     x = -, ⊥L x
+id {A = ` P}    x = -, idᵖ x
+id {A = A `∧ B} x = -, ∧R (∧L₁ x (proj₂ (id Z))) (∧L₂ x (proj₂ (id Z)))
+id {A = A `⊃ B} x = -, ⊃R (⊃L (S x) (proj₂ (id Z)) (proj₂ (id Z)))
+id {A = A `∨ B} x = -, ∨L x (∨R₁ (proj₂ (id Z))) (∨R₂ (proj₂ (id Z)))
+id {A = `⊤}     x = -, ⊤R
+id {A = `⊥}     x = -, ⊥L x
 -- this shows global completeness of the calculus
 -- which means eliminations (left rules) are strong enough to
 -- extract all the information introductions (right rule) put into
@@ -162,14 +161,14 @@ cut o@(∨R₁ a)  (∨L Z d e)  = -, proj₂ (cut a (proj₂ (cut (∨R₁ (wk 
 cut o@(∨R₂ a)  (∨L Z d e)  = -, proj₂ (cut a (proj₂ (cut (∨R₂ (wk a)) (exch e))))
 
 -- examples
-ex₀ : ∃[ q ] · ⇒ A ⊃ B ⊃ A ∧ B ^ q
+ex₀ : ∃[ q ] · ⇒ A `⊃ B `⊃ A `∧ B ^ q
 ex₀ = -, ⊃R (⊃R (∧R (proj₂ (id (S Z)))
                     (proj₂ (id Z))))
 
-ex₁ : ∃[ q ] · ⇒ (A ⊃ B ∧ C) ⊃ ((A ⊃ B) ∧ (A ⊃ C)) ^ q
+ex₁ : ∃[ q ] · ⇒ (A `⊃ B `∧ C) `⊃ (A `⊃ B) `∧ (A `⊃ C) ^ q
 ex₁ = -, ⊃R (∧R (⊃R (⊃L (S Z) (proj₂ (id Z)) (∧L₁ Z (proj₂ (id Z)))))
                 (⊃R (⊃L (S Z) (proj₂ (id Z)) (∧L₂ Z (proj₂ (id Z))))))
 
-ex₂ : ∃[ q ] · ⇒ A ⊃ A ^ q
+ex₂ : ∃[ q ] · ⇒ A `⊃ A ^ q
 ex₂ = -, ⊃R (proj₂ (id Z))
 -- unlike natural deduction, there couldn't be any other proof of A ⊃ A
