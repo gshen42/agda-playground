@@ -60,19 +60,20 @@ struct Γ⊆Δ (∨E x y z) = ∨E  (struct Γ⊆Δ x) (struct (⊆-step Γ⊆Δ
 struct Γ⊆Δ ⊤I         = ⊤I
 struct Γ⊆Δ (⊥E x)     = ⊥E  (struct Γ⊆Δ x)
 
--- examples
-ex₀ : · ⊢ A `⊃ B `⊃ A `∧ B
-ex₀ = ⊃I (⊃I (∧I (ass (S Z))
+private
+  -- examples
+  ex₀ : · ⊢ A `⊃ B `⊃ A `∧ B
+  ex₀ = ⊃I (⊃I (∧I (ass (S Z))
                  (ass Z)))
 
-ex₁ : · ⊢ (A `⊃ B `∧ C) `⊃ (A `⊃ B) `∧ (A `⊃ C)
-ex₁ = ⊃I (∧I (⊃I (∧E₁ (⊃E (ass (S Z)) (ass Z))))
+  ex₁ : · ⊢ (A `⊃ B `∧ C) `⊃ (A `⊃ B) `∧ (A `⊃ C)
+  ex₁ = ⊃I (∧I (⊃I (∧E₁ (⊃E (ass (S Z)) (ass Z))))
              (⊃I (∧E₂ (⊃E (ass (S Z)) (ass Z)))))
 
-ex₂ : · ⊢ A `⊃ A
-ex₂ = ⊃I (ass Z)
+  ex₂ : · ⊢ A `⊃ A
+  ex₂ = ⊃I (ass Z)
 
--- we can have two different proofs for the same proposition
--- where this one takes a detour
-ex₃ : · ⊢ A `⊃ A
-ex₃ = ⊃I (⊃E (⊃I (ass Z)) (ass Z))
+  -- we can have two different proofs for the same proposition
+  -- where this one takes a detour
+  ex₃ : · ⊢ A `⊃ A
+  ex₃ = ⊃I (⊃E (⊃I (ass Z)) (ass Z))

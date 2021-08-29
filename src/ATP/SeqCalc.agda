@@ -2,8 +2,10 @@ module ATP.SeqCalc where
 
 open import ATP.Prop
 open import ATP.Ctx
+open import ATP.NatDed hiding (struct)
 
-open import Data.Product using (∃; ∃-syntax; proj₁; proj₂; -,_) renaming (_,_ to infix 4 ⟨_,_⟩)
+open import Data.Product using (Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂; -,_) renaming (_,_ to infix 4 ⟨_,_⟩)
+open import Data.Empty using (⊥)
 
 infix  20 _⇒_^_
 infixr 21 _+_
@@ -93,6 +95,11 @@ exch : Γ , A , B ⇒ C ^ m
      → Γ , B , A ⇒ C ^ m
 exch x = struct ((λ { Z → S Z ; (S Z) → Z ; (S (S i)) → S (S i) })) x
 
+_>>=_ : ∃[ q ] Γ ⇒ A ^ q
+      → (∀ {m} → Γ ⇒ A ^ m → ∃[ p ] Δ ⇒ B ^ p)
+     → ∃[ r ] Δ ⇒ B ^ r
+⟨ _ , x ⟩ >>= f = -, proj₂ (f x)
+
 id : Γ ∋ A
    → ∃[ q ] Γ ⇒ A ^ q
 id {A = ` P}    x = -, idᵖ x
@@ -160,15 +167,72 @@ cut o@(⊃R a)   (⊃L Z d e)  = -, proj₂ (cut (proj₂ (cut (proj₂ (cut o d
 cut o@(∨R₁ a)  (∨L Z d e)  = -, proj₂ (cut a (proj₂ (cut (∨R₁ (wk a)) (exch d))))
 cut o@(∨R₂ a)  (∨L Z d e)  = -, proj₂ (cut a (proj₂ (cut (∨R₂ (wk a)) (exch e))))
 
--- examples
-ex₀ : ∃[ q ] · ⇒ A `⊃ B `⊃ A `∧ B ^ q
-ex₀ = -, ⊃R (⊃R (∧R (proj₂ (id (S Z)))
-                    (proj₂ (id Z))))
+-- sequent calculus is consistent in that `⊥ is not deducible
+sc-consistent : · ⇒ `⊥ ^ m → ⊥
+sc-consistent (∧L₁ () _)
+sc-consistent (∧L₂ () _)
+sc-consistent (⊃L () _ _)
+sc-consistent (∨L () _ _)
+sc-consistent (⊥L ())
 
-ex₁ : ∃[ q ] · ⇒ (A `⊃ B `∧ C) `⊃ (A `⊃ B) `∧ (A `⊃ C) ^ q
-ex₁ = -, ⊃R (∧R (⊃R (⊃L (S Z) (proj₂ (id Z)) (∧L₁ Z (proj₂ (id Z)))))
-                (⊃R (⊃L (S Z) (proj₂ (id Z)) (∧L₂ Z (proj₂ (id Z))))))
+-- every natural deduction derivation is a sequent calculus derivation
+nd→sc : Γ ⊢ C → ∃[ q ] Γ ⇒ C ^ q
+nd→sc (ass x)    = id x
+nd→sc (∧I x y)   = do a ← nd→sc x
+                      b ← nd→sc y
+                      -, ∧R a b
+nd→sc (∧E₁ x)    = do a ← nd→sc x
+                      b ← id Z
+                      cut a (∧L₁ Z b)
+nd→sc (∧E₂ x)    = do a ← nd→sc x
+                      b ← id Z
+                      cut a (∧L₂ Z b)
+nd→sc (⊃I x)     = do a ← nd→sc x
+                      -, ⊃R a
+nd→sc (⊃E x y)   = do a ← nd→sc x
+                      b ← nd→sc y
+                      c ← id Z
+                      cut a (⊃L Z (wk b) c)
+nd→sc (∨I₁ x)    = do a ← nd→sc x
+                      -, ∨R₁ a
+nd→sc (∨I₂ x)    = do a ← nd→sc x
+                      -, ∨R₂ a
+nd→sc (∨E x y z) = do a ← nd→sc x
+                      b ← nd→sc y
+                      c ← nd→sc z
+                      cut a (∨L Z (wk′ b) (wk′ c))
+nd→sc ⊤I         = -, ⊤R
+nd→sc (⊥E x)     = do a ← nd→sc x
+                      cut a (⊥L Z)
 
-ex₂ : ∃[ q ] · ⇒ A `⊃ A ^ q
-ex₂ = -, ⊃R (proj₂ (id Z))
--- unlike natural deduction, there couldn't be any other proof of A ⊃ A
+-- every sequent calculus derivation is a natural deduction derivation
+sc→nd : Γ ⇒ C ^ m → Γ ⊢ C
+sc→nd (idᵖ x)    = ass x
+sc→nd (∧R x y)   = ∧I (sc→nd x) (sc→nd y)
+sc→nd (∧L₁ x y)  = ⊃E (⊃I (sc→nd y)) (∧E₁ (ass x))
+sc→nd (∧L₂ x y)  = ⊃E (⊃I (sc→nd y)) (∧E₂ (ass x))
+sc→nd (⊃R x)     = ⊃I (sc→nd x)
+sc→nd (⊃L x y z) = ⊃E (⊃I (sc→nd z)) (⊃E (ass x) (sc→nd y))
+sc→nd (∨R₁ x)    = ∨I₁ (sc→nd x)
+sc→nd (∨R₂ x)    = ∨I₂ (sc→nd x)
+sc→nd (∨L x y z) = ∨E (ass x) (sc→nd y) (sc→nd z)
+sc→nd ⊤R         = ⊤I
+sc→nd (⊥L x)     = ⊥E (ass x)
+
+-- natural deduction is also consistent in that `⊥ is not deducible
+nd-consistent : · ⊢ `⊥ → ⊥
+nd-consistent x = sc-consistent (proj₂ (nd→sc x))
+
+private
+  -- examples
+  ex₀ : ∃[ q ] · ⇒ A `⊃ B `⊃ A `∧ B ^ q
+  ex₀ = -, ⊃R (⊃R (∧R (proj₂ (id (S Z)))
+                      (proj₂ (id Z))))
+
+  ex₁ : ∃[ q ] · ⇒ (A `⊃ B `∧ C) `⊃ (A `⊃ B) `∧ (A `⊃ C) ^ q
+  ex₁ = -, ⊃R (∧R (⊃R (⊃L (S Z) (proj₂ (id Z)) (∧L₁ Z (proj₂ (id Z)))))
+                  (⊃R (⊃L (S Z) (proj₂ (id Z)) (∧L₂ Z (proj₂ (id Z))))))
+
+  ex₂ : ∃[ q ] · ⇒ A `⊃ A ^ q
+  ex₂ = -, ⊃R (proj₂ (id Z))
+  -- unlike natural deduction, there couldn't be any other proof of A ⊃ A
