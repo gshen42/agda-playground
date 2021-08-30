@@ -4,7 +4,8 @@ open import ATP.Prop
 open import ATP.Ctx
 open import ATP.NatDed hiding (struct)
 
-open import Data.Product using (Σ; Σ-syntax; ∃; ∃-syntax; proj₁; proj₂; -,_) renaming (_,_ to infix 4 ⟨_,_⟩)
+open import Data.Product
+  using (∃; ∃-syntax; proj₂; -,_) renaming (_,_ to infix 4 ⟨_,_⟩)
 open import Data.Empty using (⊥)
 
 infix  20 _⇒_^_
@@ -95,23 +96,35 @@ exch : Γ , A , B ⇒ C ^ m
      → Γ , B , A ⇒ C ^ m
 exch x = struct ((λ { Z → S Z ; (S Z) → Z ; (S (S i)) → S (S i) })) x
 
+-- we write ∃[ q ] ⇒ Γ ⇒ A ^ q for sequent with size we don't care,
+-- the monadic binding makes manipulating them easier, though I'm not
+-- sure whether they actually form a monad
 _>>=_ : ∃[ q ] Γ ⇒ A ^ q
       → (∀ {m} → Γ ⇒ A ^ m → ∃[ p ] Δ ⇒ B ^ p)
      → ∃[ r ] Δ ⇒ B ^ r
-⟨ _ , x ⟩ >>= f = -, proj₂ (f x)
+⟨ _ , x ⟩ >>= f = let ⟨ _ , a ⟩ = f x
+                   in -, a
 
-id : Γ ∋ A
-   → ∃[ q ] Γ ⇒ A ^ q
-id {A = ` P}    x = -, idᵖ x
-id {A = A `∧ B} x = -, ∧R (∧L₁ x (proj₂ (id Z))) (∧L₂ x (proj₂ (id Z)))
-id {A = A `⊃ B} x = -, ⊃R (⊃L (S x) (proj₂ (id Z)) (proj₂ (id Z)))
-id {A = A `∨ B} x = -, ∨L x (∨R₁ (proj₂ (id Z))) (∨R₂ (proj₂ (id Z)))
-id {A = `⊤}     x = -, ⊤R
-id {A = `⊥}     x = -, ⊥L x
+-- identity theorem
 -- this shows global completeness of the calculus
 -- which means eliminations (left rules) are strong enough to
 -- extract all the information introductions (right rule) put into
+id : Γ ∋ A
+   → ∃[ q ] Γ ⇒ A ^ q
+id {A = ` P}    x = -, idᵖ x
+id {A = A `∧ B} x = do a ← id Z
+                       b ← id Z
+                       -, ∧R (∧L₁ x a) (∧L₂ x b)
+id {A = A `⊃ B} x = do a ← id Z
+                       b ← id Z
+                       -, ⊃R (⊃L (S x) a b)
+id {A = A `∨ B} x = do a ← id Z
+                       b ← id Z
+                       -, ∨L x (∨R₁ a) (∨R₂ b)
+id {A = `⊤}     x = -, ⊤R
+id {A = `⊥}     x = -, ⊥L x
 
+-- cut theorem
 cut :        Γ ⇒ D     ^ m
     →        Γ , D ⇒ C ^ n
     → ∃[ q ] Γ     ⇒ C ^ q
@@ -121,39 +134,79 @@ cut (idᵖ a) b = -, struct (λ { Z → a ; (S i) → i }) b
 cut a (idᵖ Z)     = -, a
 cut a (idᵖ (S b)) = -, idᵖ b
 -- right rule + arbitrary rule
-cut (∧L₁ a b)  c = -, ∧L₁ a (proj₂ (cut b (wk′ c)))
-cut (∧L₂ a b)  c = -, ∧L₂ a (proj₂ (cut b (wk′ c)))
-cut (⊃L a b c) d = -, ⊃L a b (proj₂ (cut c (wk′ d)))
-cut (∨L a b c) d = -, ∨L a (proj₂ (cut b (wk′ d))) (proj₂ (cut c (wk′ d)))
+cut (∧L₁ a b)  c = do x ← cut b (wk′ c)
+                      -, ∧L₁ a x
+cut (∧L₂ a b)  c = do x ← cut b (wk′ c)
+                      -, ∧L₂ a x
+cut (⊃L a b c) d = do x ← cut c (wk′ d)
+                      -, ⊃L a b x
+cut (∨L a b c) d = do x ← cut b (wk′ d)
+                      y ← cut c (wk′ d)
+                      -, ∨L a x y
 cut (⊥L a)     b = -, ⊥L a
 -- arbitrary rule + left rule
-cut a (∧R b c) = -, ∧R (proj₂ (cut a b)) (proj₂ (cut a c))
-cut a (⊃R b)   = -, ⊃R (proj₂ (cut (wk a) (exch b)))
-cut a (∨R₁ b)  = -, ∨R₁ (proj₂ (cut a b))
-cut a (∨R₂ b)  = -, ∨R₂ (proj₂ (cut a b))
+cut a (∧R b c) = do x ← cut a b
+                    y ← cut a c
+                    -, ∧R x y
+cut a (⊃R b)   = do x ← cut (wk a) (exch b)
+                    -, ⊃R x
+cut a (∨R₁ b)  = do x ← cut a b
+                    -, ∨R₁ x
+cut a (∨R₂ b)  = do x ← cut a b
+                    -, ∨R₂ x
 cut a ⊤R       = -, ⊤R
---right rule + left rule
+-- right rule + left rule
 -- the cut proposition is not used
-cut o@(∧R a b) (∧L₁ (S c) d)  = -, ∧L₁ c (proj₂ (cut (wk o) (exch d)))
-cut o@(⊃R a)   (∧L₁ (S c) d)  = -, ∧L₁ c (proj₂ (cut (wk o) (exch d)))
-cut o@(∨R₁ a)  (∧L₁ (S c) d)  = -, ∧L₁ c (proj₂ (cut (wk o) (exch d)))
-cut o@(∨R₂ a)  (∧L₁ (S c) d)  = -, ∧L₁ c (proj₂ (cut (wk o) (exch d)))
-cut o@⊤R       (∧L₁ (S c) d)  = -, ∧L₁ c (proj₂ (cut (wk o) (exch d)))
-cut o@(∧R a b) (∧L₂ (S c) d)  = -, ∧L₂ c (proj₂ (cut (wk o) (exch d)))
-cut o@(⊃R a)   (∧L₂ (S c) d)  = -, ∧L₂ c (proj₂ (cut (wk o) (exch d)))
-cut o@(∨R₁ a)  (∧L₂ (S c) d)  = -, ∧L₂ c (proj₂ (cut (wk o) (exch d)))
-cut o@(∨R₂ a)  (∧L₂ (S c) d)  = -, ∧L₂ c (proj₂ (cut (wk o) (exch d)))
-cut o@⊤R       (∧L₂ (S c) d)  = -, ∧L₂ c (proj₂ (cut (wk o) (exch d)))
-cut o@(∧R a b) (⊃L (S c) d e) = -, ⊃L c (proj₂ (cut o d)) (proj₂ (cut (wk o) (exch e)))
-cut o@(⊃R a)   (⊃L (S c) d e) = -, ⊃L c (proj₂ (cut o d)) (proj₂ (cut (wk o) (exch e)))
-cut o@(∨R₁ a)  (⊃L (S c) d e) = -, ⊃L c (proj₂ (cut o d)) (proj₂ (cut (wk o) (exch e)))
-cut o@(∨R₂ a)  (⊃L (S c) d e) = -, ⊃L c (proj₂ (cut o d)) (proj₂ (cut (wk o) (exch e)))
-cut o@⊤R       (⊃L (S c) d e) = -, ⊃L c (proj₂ (cut o d)) (proj₂ (cut (wk o) (exch e)))
-cut o@(∧R a b) (∨L (S c) d e) = -, ∨L c (proj₂ (cut (wk o) (exch d))) (proj₂ (cut (wk o) (exch e)))
-cut o@(⊃R a)   (∨L (S c) d e) = -, ∨L c (proj₂ (cut (wk o) (exch d))) (proj₂ (cut (wk o) (exch e)))
-cut o@(∨R₁ a)  (∨L (S c) d e) = -, ∨L c (proj₂ (cut (wk o) (exch d))) (proj₂ (cut (wk o) (exch e)))
-cut o@(∨R₂ a)  (∨L (S c) d e) = -, ∨L c (proj₂ (cut (wk o) (exch d))) (proj₂ (cut (wk o) (exch e)))
-cut o@⊤R       (∨L (S c) d e) = -, ∨L c (proj₂ (cut (wk o) (exch d))) (proj₂ (cut (wk o) (exch e)))
+cut o@(∧R a b) (∧L₁ (S c) d)  = do x ← cut (wk o) (exch d)
+                                   -, ∧L₁ c x
+cut o@(⊃R a)   (∧L₁ (S c) d)  = do x ← cut (wk o) (exch d)
+                                   -, ∧L₁ c x
+cut o@(∨R₁ a)  (∧L₁ (S c) d)  = do x ← cut (wk o) (exch d)
+                                   -, ∧L₁ c x
+cut o@(∨R₂ a)  (∧L₁ (S c) d)  = do x ← cut (wk o) (exch d)
+                                   -, ∧L₁ c x
+cut o@⊤R       (∧L₁ (S c) d)  = do x ← cut (wk o) (exch d)
+                                   -, ∧L₁ c x
+cut o@(∧R a b) (∧L₂ (S c) d)  = do x ← cut (wk o) (exch d)
+                                   -, ∧L₂ c x
+cut o@(⊃R a)   (∧L₂ (S c) d)  = do x ← cut (wk o) (exch d)
+                                   -, ∧L₂ c x
+cut o@(∨R₁ a)  (∧L₂ (S c) d)  = do x ← cut (wk o) (exch d)
+                                   -, ∧L₂ c x
+cut o@(∨R₂ a)  (∧L₂ (S c) d)  = do x ← cut (wk o) (exch d)
+                                   -, ∧L₂ c x
+cut o@⊤R       (∧L₂ (S c) d)  = do x ← cut (wk o) (exch d)
+                                   -, ∧L₂ c x
+cut o@(∧R a b) (⊃L (S c) d e) = do x ← cut o d
+                                   y ← cut (wk o) (exch e)
+                                   -, ⊃L c x y
+cut o@(⊃R a)   (⊃L (S c) d e) = do x ← cut o d
+                                   y ← cut (wk o) (exch e)
+                                   -, ⊃L c x y
+cut o@(∨R₁ a)  (⊃L (S c) d e) = do x ← cut o d
+                                   y ← cut (wk o) (exch e)
+                                   -, ⊃L c x y
+cut o@(∨R₂ a)  (⊃L (S c) d e) = do x ← cut o d
+                                   y ← cut (wk o) (exch e)
+                                   -, ⊃L c x y
+cut o@⊤R       (⊃L (S c) d e) = do x ← cut o d
+                                   y ← cut (wk o) (exch e)
+                                   -, ⊃L c x y
+cut o@(∧R a b) (∨L (S c) d e) = do x ← cut (wk o) (exch d)
+                                   y ← cut (wk o) (exch e)
+                                   -, ∨L c x y
+cut o@(⊃R a)   (∨L (S c) d e) = do x ← cut (wk o) (exch d)
+                                   y ← cut (wk o) (exch e)
+                                   -, ∨L c x y
+cut o@(∨R₁ a)  (∨L (S c) d e) = do x ← cut (wk o) (exch d)
+                                   y ← cut (wk o) (exch e)
+                                   -, ∨L c x y
+cut o@(∨R₂ a)  (∨L (S c) d e) = do x ← cut (wk o) (exch d)
+                                   y ← cut (wk o) (exch e)
+                                   -, ∨L c x y
+cut o@⊤R       (∨L (S c) d e) = do x ← cut (wk o) (exch d)
+                                   y ← cut (wk o) (exch e)
+                                   -, ∨L c x y
 cut o@(∧R a b) (⊥L (S c))     = -, ⊥L c
 cut o@(⊃R a)   (⊥L (S c))     = -, ⊥L c
 cut o@(∨R₁ a)  (⊥L (S c))     = -, ⊥L c
@@ -161,11 +214,18 @@ cut o@(∨R₂ a)  (⊥L (S c))     = -, ⊥L c
 cut o@⊤R       (⊥L (S c))     = -, ⊥L c
 -- right rule + left rule
 -- the cut proposition is used
-cut o@(∧R a b) (∧L₁ Z d)   = -, proj₂ (cut a (proj₂ (cut (wk o) (exch d))))
-cut o@(∧R a b) (∧L₂ Z d)   = -, proj₂ (cut b (proj₂ (cut (wk o) (exch d))))
-cut o@(⊃R a)   (⊃L Z d e)  = -, proj₂ (cut (proj₂ (cut (proj₂ (cut o d)) a)) (proj₂ (cut (wk o) (exch e))))
-cut o@(∨R₁ a)  (∨L Z d e)  = -, proj₂ (cut a (proj₂ (cut (∨R₁ (wk a)) (exch d))))
-cut o@(∨R₂ a)  (∨L Z d e)  = -, proj₂ (cut a (proj₂ (cut (∨R₂ (wk a)) (exch e))))
+cut o@(∧R a b) (∧L₁ Z d)   = do x ← cut (wk o) (exch d)
+                                cut a x
+cut o@(∧R a b) (∧L₂ Z d)   = do x ← cut (wk o) (exch d)
+                                cut b x
+cut o@(⊃R a)   (⊃L Z d e)  = do x ← cut o d
+                                y ← cut x a
+                                z ← cut (wk o) (exch e)
+                                cut y z
+cut o@(∨R₁ a)  (∨L Z d e)  = do x ← cut (∨R₁ (wk a)) (exch d)
+                                cut a x
+cut o@(∨R₂ a)  (∨L Z d e)  = do x ← cut (∨R₂ (wk a)) (exch e)
+                                cut a x
 
 -- sequent calculus is consistent in that `⊥ is not deducible
 sc-consistent : · ⇒ `⊥ ^ m → ⊥
@@ -221,18 +281,25 @@ sc→nd (⊥L x)     = ⊥E (ass x)
 
 -- natural deduction is also consistent in that `⊥ is not deducible
 nd-consistent : · ⊢ `⊥ → ⊥
-nd-consistent x = sc-consistent (proj₂ (nd→sc x))
+nd-consistent x = let ⟨ _ , a ⟩ = nd→sc x
+                   in sc-consistent a
 
 private
   -- examples
   ex₀ : ∃[ q ] · ⇒ A `⊃ B `⊃ A `∧ B ^ q
-  ex₀ = -, ⊃R (⊃R (∧R (proj₂ (id (S Z)))
-                      (proj₂ (id Z))))
+  ex₀ = do x ← id (S Z)
+           y ← id Z
+           -, ⊃R (⊃R (∧R x y))
 
   ex₁ : ∃[ q ] · ⇒ (A `⊃ B `∧ C) `⊃ (A `⊃ B) `∧ (A `⊃ C) ^ q
-  ex₁ = -, ⊃R (∧R (⊃R (⊃L (S Z) (proj₂ (id Z)) (∧L₁ Z (proj₂ (id Z)))))
-                  (⊃R (⊃L (S Z) (proj₂ (id Z)) (∧L₂ Z (proj₂ (id Z))))))
+  ex₁ = do x ← id Z
+           y ← id Z
+           z ← id Z
+           w ← id Z
+           -, ⊃R (∧R (⊃R (⊃L (S Z) x (∧L₁ Z y)))
+                     (⊃R (⊃L (S Z) z (∧L₂ Z w))))
 
   ex₂ : ∃[ q ] · ⇒ A `⊃ A ^ q
-  ex₂ = -, ⊃R (proj₂ (id Z))
+  ex₂ = do x ← id Z
+           -, ⊃R x
   -- unlike natural deduction, there couldn't be any other proof of A ⊃ A

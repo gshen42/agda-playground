@@ -63,12 +63,11 @@ struct Γ⊆Δ (⊥E x)     = ⊥E  (struct Γ⊆Δ x)
 private
   -- examples
   ex₀ : · ⊢ A `⊃ B `⊃ A `∧ B
-  ex₀ = ⊃I (⊃I (∧I (ass (S Z))
-                 (ass Z)))
+  ex₀ = ⊃I (⊃I (∧I (ass (S Z)) (ass Z)))
 
   ex₁ : · ⊢ (A `⊃ B `∧ C) `⊃ (A `⊃ B) `∧ (A `⊃ C)
   ex₁ = ⊃I (∧I (⊃I (∧E₁ (⊃E (ass (S Z)) (ass Z))))
-             (⊃I (∧E₂ (⊃E (ass (S Z)) (ass Z)))))
+               (⊃I (∧E₂ (⊃E (ass (S Z)) (ass Z)))))
 
   ex₂ : · ⊢ A `⊃ A
   ex₂ = ⊃I (ass Z)
